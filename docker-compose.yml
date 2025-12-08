@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  # Swarm Visualizer - helpful to see where containers are running
+  visualizer:
+    image: dockersamples/visualizer:stable
+    ports:
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+    networks:
+      - gpu-net
+
+  # Placeholder for a GPU workload
+  gpu-worker:
+    image: nvidia/cuda:11.0.3-base-ubuntu20.04 # Example base image
+    command: ["nvidia-smi"] # Just check GPU status and exit
+    deploy:
+      replicas: 0 # Start with 0 until we have GPU nodes
+      restart_policy:
+        condition: on-failure
+      # resources:
+      #   reservations:
+      #     devices:
+      #       - driver: nvidia
+      #         count: 1
+      #         capabilities: [gpu]
+      placement:
+        constraints: [node.labels.gpu == true]
+    networks:
+      - gpu-net
+
+  # Basic web service for testing connectivity
+  whoami:
+    image: traefik/whoami
+    deploy:
+      replicas: 2
+      labels:
+        - "traefik.enable=false"
+    networks:
+      - gpu-net
+    ports:
+      - "8000:80"
+
+networks:
+  gpu-net:
+    external: true

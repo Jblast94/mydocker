@@ -4,15 +4,22 @@ services:
   # Swarm Visualizer - helpful to see where containers are running
   visualizer:
     image: dockersamples/visualizer:stable
-    ports:
-      - "8080:8080"
+    # ports:
+    #   - "8080:8080" # Exposed via Traefik now
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
     deploy:
       placement:
         constraints: [node.role == manager]
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.visualizer.rule=Host(`visualizer.jcn.digital`)"
+        - "traefik.http.routers.visualizer.entrypoints=websecure"
+        - "traefik.http.routers.visualizer.tls.certresolver=myresolver"
+        - "traefik.http.services.visualizer.loadbalancer.server.port=8080"
     networks:
       - gpu-net
+      - proxy-net
 
   # Placeholder for a GPU workload
   gpu-worker:
@@ -37,14 +44,25 @@ services:
   whoami:
     image: traefik/whoami
     deploy:
+      mode: replicated
       replicas: 2
+      placement:
+        constraints:
+          - node.role == manager
       labels:
-        - "traefik.enable=false"
+        - "traefik.enable=true"
+        - "traefik.http.routers.whoami.rule=Host(`whoami.jcn.digital`)"
+        - "traefik.http.routers.whoami.entrypoints=websecure"
+        - "traefik.http.routers.whoami.tls.certresolver=myresolver"
+        - "traefik.http.services.whoami.loadbalancer.server.port=80"
     networks:
       - gpu-net
-    ports:
-      - "8000:80"
+      - proxy-net
+    # ports:
+    #   - "8000:80"
 
 networks:
   gpu-net:
+    external: true
+  proxy-net:
     external: true

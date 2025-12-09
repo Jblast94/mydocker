@@ -3,8 +3,8 @@ version: '3.8'
 services:
   prometheus:
     image: prom/prometheus
-    ports:
-      - "9090:9090"
+    # ports:
+    #   - "9090:9090"
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
     volumes:
@@ -13,20 +13,34 @@ services:
     deploy:
       placement:
         constraints: [node.role == manager]
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.prometheus.rule=Host(`prometheus.jcn.digital`)"
+        - "traefik.http.routers.prometheus.entrypoints=websecure"
+        - "traefik.http.routers.prometheus.tls.certresolver=myresolver"
+        - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
     networks:
       - monitoring-net
+      - proxy-net
 
   grafana:
     image: grafana/grafana
-    ports:
-      - "3000:3000"
+    # ports:
+    #   - "3000:3000"
     volumes:
       - grafana_data:/var/lib/grafana
     deploy:
       placement:
         constraints: [node.role == manager]
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.grafana.rule=Host(`grafana.jcn.digital`)"
+        - "traefik.http.routers.grafana.entrypoints=websecure"
+        - "traefik.http.routers.grafana.tls.certresolver=myresolver"
+        - "traefik.http.services.grafana.loadbalancer.server.port=3000"
     networks:
       - monitoring-net
+      - proxy-net
 
   # Cadvisor (Container Advisor) - One per node
   cadvisor:
@@ -59,6 +73,8 @@ services:
 networks:
   monitoring-net:
     driver: overlay
+  proxy-net:
+    external: true
 
 volumes:
   prometheus_data:

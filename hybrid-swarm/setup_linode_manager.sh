@@ -6,6 +6,7 @@ set -e
 # ==============================================================================
 # This script turns a fresh Linode instance into the "Brain" of your Swarm.
 # It installs Docker, WireGuard, and initializes the Swarm.
+# Compatible with ProtonVPN Split Routing (Split Tunneling).
 #
 # USAGE:
 #   chmod +x setup_linode_manager.sh

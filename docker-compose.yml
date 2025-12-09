@@ -1,68 +1,30 @@
 version: '3.8'
 
 services:
-  # Swarm Visualizer - helpful to see where containers are running
-  visualizer:
-    image: dockersamples/visualizer:stable
-    # ports:
-    #   - "8080:8080" # Exposed via Traefik now
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock"
-    deploy:
-      placement:
-        constraints: [node.role == manager]
-      labels:
-        - "traefik.enable=true"
-        - "traefik.http.routers.visualizer.rule=Host(`visualizer.jcn.digital`)"
-        - "traefik.http.routers.visualizer.entrypoints=websecure"
-        - "traefik.http.routers.visualizer.tls.certresolver=myresolver"
-        - "traefik.http.services.visualizer.loadbalancer.server.port=8080"
-    networks:
-      - gpu-net
-      - proxy-net
-
   # Placeholder for a GPU workload
   gpu-worker:
     image: nvidia/cuda:11.0.3-base-ubuntu20.04 # Example base image
-    command: ["nvidia-smi"] # Just check GPU status and exit
+    command: [ "nvidia-smi" ] # Just check GPU status and exit
     deploy:
       replicas: 0 # Start with 0 until we have GPU nodes
       restart_policy:
         condition: on-failure
-      # resources:
-      #   reservations:
-      #     devices:
-      #       - driver: nvidia
-      #         count: 1
-      #         capabilities: [gpu]
       placement:
-        constraints: [node.labels.gpu == true]
+        constraints: [ node.labels.gpu == true ]
     networks:
-      - gpu-net
+      - swarm-net
 
   # Basic web service for testing connectivity
   whoami:
     image: traefik/whoami
+    ports:
+      - "8000:80"
     deploy:
       mode: replicated
       replicas: 2
-      placement:
-        constraints:
-          - node.role == manager
-      labels:
-        - "traefik.enable=true"
-        - "traefik.http.routers.whoami.rule=Host(`whoami.jcn.digital`)"
-        - "traefik.http.routers.whoami.entrypoints=websecure"
-        - "traefik.http.routers.whoami.tls.certresolver=myresolver"
-        - "traefik.http.services.whoami.loadbalancer.server.port=80"
     networks:
-      - gpu-net
-      - proxy-net
-    # ports:
-    #   - "8000:80"
+      - swarm-net
 
 networks:
-  gpu-net:
-    external: true
-  proxy-net:
+  swarm-net:
     external: true
